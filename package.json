@@ -1,0 +1,44 @@
+{
+    "name": "basinpie",
+    "version": "0.0.1",
+    "description": "Generates variable radius piecharts using data from Corps Water Magagement System Data API provided a config file.",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/USACE-WaterManagement/basinpie-react.git"
+    },
+    "keywords": [
+        "usace",
+        "wm",
+        "water",
+        "management",
+        "react",
+        "basin",
+        "basinpie",
+        "pichart",
+        "d3",
+        "cwms",
+        "cda",
+        "cwms",
+        "data",
+        "api",
+        "swt",
+        "swf"
+    ],
+    "author": "Charles Graham (SWT)",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/USACE-WaterManagement/basinpie-react/issues"
+    },
+    "homepage": "https://github.com/USACE-WaterManagement/basinpie-react#readme",
+    "peerDependencies": {
+        "cwmsjs": "^1.15.0",
+        "d3": "^7.9.0"
+    },
+    "dependencies": {
+        "@tanstack/react-query": "^5.56.2"
+    }
+}

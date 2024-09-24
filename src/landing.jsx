@@ -1,7 +1,7 @@
 import { useState } from "react";
-import BasinPie from "./components/BasinPie";
+import BasinPie from "./components/BasinPie.jsx";
 import SaveSvgButton from "../components/SaveSvgButton";
-import BasinPieList from "./components/BasinList";
+import BasinPieList from "./components/BasinList.jsx";
 import { capitalize } from "../../utils";
 import { Badge } from "@usace/groundwork";
 // import ContactUs from "../components/ContactUs"
@@ -11,9 +11,15 @@ import { ts_api, level_api, CDA_DATE_FORMAT } from "../../utils/api.js";
 import { getLatestEntry } from "../../utils/cda";
 import Config from "../../utils/config.js";
 const { OFFICE } = Config;
-import { basinProjects, level_ids, timeseries_ids, labels, lookBackHours } from "./config";
+import {
+  basinProjects,
+  level_ids,
+  timeseries_ids,
+  labels,
+  lookBackHours,
+} from "./config.js";
 
-import basinToProjectMap from "./components/BasinMap";
+import basinToProjectMap from "./components/BasinMap.jsx";
 
 const basins = Object.keys(basinProjects).map((b) => capitalize(b));
 export default function BasinTestPage() {
@@ -101,7 +107,9 @@ export default function BasinTestPage() {
             ts_api.getCwmsDataTimeseries({
               office: OFFICE,
               name: `${proj}${tsid}`,
-              begin: dayjs().subtract(lookBackHours, "hour").format(CDA_DATE_FORMAT),
+              begin: dayjs()
+                .subtract(lookBackHours, "hour")
+                .format(CDA_DATE_FORMAT),
             })
           );
         }

@@ -2,7 +2,11 @@
     "name": "basinpie",
     "version": "0.0.1",
     "description": "Generates variable radius piecharts using data from Corps Water Magagement System Data API provided a config file.",
-    "main": "index.js",
+    "main": "./src/index.jsx",
+    "module": "./src/index.jsx",
+    "bin": {
+        "basinpie": "./src/scripts/run.js"
+    },
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
@@ -36,7 +40,14 @@
     "homepage": "https://github.com/USACE-WaterManagement/basinpie-react#readme",
     "peerDependencies": {
         "cwmsjs": "^1.15.0",
-        "d3": "^7.9.0"
+        "d3": "^7.9.0",
+        "react": "^17.0.0",
+        "react-dom": "^17.0.0"
+    },
+    "optionalDependencies": {
+        "commander": "^9.4.0",
+        "sharp": "^0.31.2",
+        "jsdom": "^21.0.0"
     },
     "dependencies": {
         "@tanstack/react-query": "^5.56.2"

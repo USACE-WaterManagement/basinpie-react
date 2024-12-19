@@ -1,6 +1,6 @@
 {
     "name": "basinpie",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Generates variable radius piecharts using data from Corps Water Magagement System Data API provided a config file.",
     "main": "./src/index.jsx",
     "module": "./src/index.jsx",

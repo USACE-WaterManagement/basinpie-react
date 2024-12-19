@@ -8,20 +8,48 @@ import advancedFormat from "dayjs/plugin/advancedFormat.js"; // ES 2015
 // https://day.js.org/docs/en/plugin/advanced-format
 dayjs.extend(advancedFormat);
 
-const OFFICE = "SWF";
-
+const basinProjects = {
+  upperred: ["DENI", "ARBU", "WAUR", "FCOB", "FOSS", "TOMS", "KEMP", "ALTU"],
+  lowerark: ["WIST", "TENK", "EUFA", "FGIB", "HUDS", "KEYS", "OOLO", "PENS"],
+  verdigris: [
+    "SKIA",
+    "BIRC",
+    "HULA",
+    "COPA",
+    "BIGH",
+    "ELKC",
+    "FALL",
+    "TORO",
+    "OOLO",
+  ],
+  grandneosho: ["FGIB", "HUDS", "PENS", "JOHN", "MARI", "COUN"],
+  upperark: ["HEYB", "GSAL", "ELDR", "CHEN", "KAWL", "KEYS"],
+  canadian: ["MERE", "THUN", "FSUP", "CANT", "ARCA", "EUFA"],
+  lowerred: ["MCGE", "PINE", "DENI", "SARD", "BROK", "PATM", "HUGO"],
+  taper: [
+    "WIST",
+    "SKIA",
+    "BIRC",
+    "PENS",
+    "COPA",
+    "HULA",
+    "HUDS",
+    "FGIB",
+    "TENK",
+    "EUFA",
+    "KEYS",
+    "KAWL",
+    "OOLO",
+  ],
+};
 const level_ids = {
   TOF: ".Stor.Inst.0.Top of Flood",
   TOC: ".Stor.Inst.0.Top of Conservation",
   TOI: ".Stor.Inst.0.Top of Inactive",
 };
-
-// How many hours in the past should we go back for current timeseries?
-const lookBackHours = 4;
-
 const timeseries_ids = {
-  FCP: ".Stor-Flood Pool.Inst.1Hour.0.Decodes-Comp",
-  Cons: ".Stor-Conservation Pool.Inst.1Hour.0.Decodes-Comp",
+  FCP: ".Stor-Flood Pool.Inst.1Hour.0.Ccp-Rev",
+  Cons: ".Stor-Conservation Pool.Inst.1Hour.0.Ccp-Rev",
 };
 
 const BASIN_COLORS = [
@@ -46,24 +74,8 @@ const BASIN_COLORS = [
 let labels = [
   {
     attr: {
-      x: "viewBoxWidth / 2 + 90",
-      y: "25",
-      "text-anchor": "middle",
-      "font-size": "1.1em",
-      "font-weight": "bold",
-      "font-family": "Arial, sans-serif",
-    },
-    style: {
-      "font-size": "2em",
-      "font-weight": "bold",
-      "font-family": "Arial, sans-serif",
-    },
-    text: `%pool Pool %percent_full%`,
-  },
-  {
-    attr: {
-      x: "viewBoxWidth / 2 + 90",
-      y: "45",
+      x: "viewBoxWidth / 2",
+      y: "20",
       "text-anchor": "middle",
       "font-size": "1.1em",
       "font-weight": "bold",
@@ -74,75 +86,36 @@ let labels = [
       "font-weight": "bold",
       "font-family": "Arial, sans-serif",
     },
-    text: `${dayjs().format("ddd MMM DD HH:mm:ss z YYYY")}`,
+    text: `THE FULL PIE IS %total_stor ACRE-FEET OR %percent_full%`,
   },
   {
     attr: {
-      x: "viewBoxWidth / 2 + 90",
-      y: "viewBoxHeight - 90",
+      x: "viewBoxWidth / 2",
+      y: "viewBoxHeight - 20",
       "text-anchor": "middle",
       "font-size": "1em",
       "font-weight": "bold",
       "font-family": "Arial, sans-serif",
     },
     style: {
-      "font-size": "1.2em",
+      "font-size": "1em",
       "font-weight": "bold",
       "font-family": "Arial, sans-serif",
     },
-    text: `%pool Usage: %total_stor / %total_incr `,
+    text: `IMAGE DATE: ${dayjs().format("ddd MMM DD HH:mm:ss z YYYY")}`,
   },
 ];
 
-const basinProjects = {
-  brazos: [
-    "WTYT2",
-    "ALAT2",
-    "ACTT2",
-    "PCTT2",
-    "BLNT2",
-    "STIT2",
-    "GGLT2",
-    "GNGT2",
-    "SOMT2",
-  ],
-  colorado: ["SAGT2", "HORT2", "MSDT2"],
-  guadalupe: ["SMCT2"],
-  neches: ["TBLT2", "JSPT2"],
-  red: ["SCLT2", "TXKT2", "JFNT2"],
-  trinity: [
-    "BNBT2",
-    "JPLT2",
-    "RRLT2",
-    "LEWT2",
-    "GPVT2",
-    "LVNT2",
-    "DAWT2",
-    "BDWT2",
-  ],
-};
-
-// Keep the key the same, change the value to what you would like displayed for %pool
-const poolDisplay = {
-  cons_pool: "Conservation",
-  flood_pool: "Flood",
-};
-
-// CDA Control Options
-const CDA_HOST = "https://cwms-data.usace.army.mil/cwms-data";
-const CDA_RETRY_DELAY_MS = 300; // time in milliseconds between failed retries
-const CDA_RETRY_COUNT = 2; // Number of times to try and fetch data before failing/throwing an error
-
 const basinMap = {
-  brazos: [
-    { name: "WTYT2", href: "/hourly/KEYS" },
-    { name: "ALAT2", href: "/hourly/KAWL" },
-    { name: "ACTT2", href: "/hourly/CHEN" },
+  upperark: [
+    { name: "Keystone", href: "/hourly/KEYS" },
+    { name: "Kaw Lake", href: "/hourly/KAWL" },
+    { name: "Cheney", href: "/hourly/CHEN" },
     { name: "El Dorado", href: "/hourly/ELDR" },
     { name: "Great Salt Plains", href: "/hourly/GSAL" },
     { name: "Heyburn Lake", href: "/hourly/HEYB" },
   ],
-  colorado: [
+  lowerark: [
     { name: "Pensacola (Grand Lake)", href: "/hourly/PENS" },
     { name: "Oologah Lake", href: "/hourly/OOLO" },
     { name: "Keystone Lake", href: "/hourly/KEYS" },
@@ -153,7 +126,7 @@ const basinMap = {
     { name: "Wister Lake", href: "/hourly/WIST" },
     { name: "Kaw Lake", href: "/hourly/KAWL" },
   ],
-  guadalupe: [
+  canadian: [
     { name: "Eufaula Lake", href: "/hourly/EUFA" },
     { name: "Arcadia Lake", href: "/hourly/ARCA" },
     { name: "Canton Lake", href: "/hourly/CANT" },
@@ -163,7 +136,7 @@ const basinMap = {
     { name: "Copan Lake", href: "/hourly/COPA" },
     { name: "Hula Lake", href: "/hourly/HULA" },
   ],
-  neches: [
+  upperred: [
     { name: "Altus Dam", href: "/hourly/ALTU" },
     { name: "Kemp", href: "/hourly/KEMP" },
     { name: "Tom Steed", href: "/hourly/TOMS" },
@@ -173,7 +146,7 @@ const basinMap = {
     { name: "Arbuckle", href: "/hourly/ARBU" },
     { name: "Denison", href: "/hourly/DENI" },
   ],
-  red: [
+  lowerred: [
     { name: "Hugo", href: "/hourly/HUGO" },
     { name: "Pat Mayse", href: "/hourly/PATM" },
     { name: "Broken Bow", href: "/hourly/BROK" },
@@ -182,7 +155,7 @@ const basinMap = {
     { name: "Pine Creek Lake", href: "/hourly/PINE" },
     { name: "McGee Creek Reservoir", href: "/hourly/MCGE" },
   ],
-  trinity: [
+  grandneosho: [
     { name: "Council Grove Lake", href: "/hourly/COUN" },
     { name: "Marion Lake", href: "/hourly/MARI" },
     { name: "John Redmond Lake", href: "/hourly/JOHN" },
@@ -190,19 +163,35 @@ const basinMap = {
     { name: "Lake Hudson", href: "/hourly/HUDS" },
     { name: "Ft. Gibson Lake", href: "/hourly/FGIB" },
   ],
+  verdigris: [
+    { name: "Oologah Lake", href: "/hourly/OOLO" },
+    { name: "Toronto Lake", href: "/hourly/TORO" },
+    { name: "Fall River Lake", href: "/hourly/FALL" },
+    { name: "Elk City Lake", href: "/hourly/ELKC" },
+    { name: "Big Hill Lake", href: "/hourly/BIGH" },
+    { name: "Copan Lake", href: "/hourly/COPA" },
+    { name: "Hulah Lake", href: "/hourly/HULA" },
+    { name: "Birch Lake", href: "/hourly/BIRC" },
+    { name: "Skiatook Lake", href: "/hourly/SKIA" },
+  ],
+  taper: [
+    { name: "Pensacola (Grand Lake)", href: "/hourly/PENS" },
+    { name: "Oologah Lake", href: "/hourly/OOLO" },
+    { name: "Keystone Lake", href: "/hourly/KEYS" },
+    { name: "Lake Hudson", href: "/hourly/HUDS" },
+    { name: "Ft. Gibson Lake", href: "/hourly/FGIB" },
+    { name: "Eufaula Lake", href: "/hourly/EUFA" },
+    { name: "Tenkiller Lake", href: "/hourly/TENK" },
+    { name: "Wister Lake", href: "/hourly/WIST" },
+    { name: "Kaw Lake", href: "/hourly/KAWL" },
+  ],
 };
 
 export {
-  OFFICE,
   basinProjects,
   level_ids,
   timeseries_ids,
   BASIN_COLORS,
   labels,
   basinMap,
-  poolDisplay,
-  lookBackHours,
-  CDA_HOST,
-  CDA_RETRY_COUNT,
-  CDA_RETRY_DELAY_MS,
 };

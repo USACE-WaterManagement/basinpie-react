@@ -7,13 +7,13 @@ import { writeFile } from "fs/promises";
 import { JSDOM } from "jsdom";
 import { createBasinPie } from "../charts/basinpie.js";
 // import { basinProjects, level_ids, timeseries_ids, labels } from "../config.js";
-// Config loader
-await loadConfig();
+import loadConfig from "../utils/config.js";
 
 import dayjs from "dayjs";
-import { fetchLevelData, fetchTimeseriesData } from "../getBasinData.js";
-import process from "process";
+import { fetchLevelData, fetchTimeseriesData } from "../utils/getBasinData.js";
+import process, { exit } from "process";
 import { Command } from "commander"; // Import commander.js for argument parsing
+import { initializeAPIs } from "../utils/api.js";
 
 const { CDA_DATE_FORMAT } = "../utils/api.js";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -23,14 +23,31 @@ const program = new Command();
 program
   .option("--width <number>", "Set width of the chart", 480)
   .option("--height <number>", "Set height of the chart", 480)
-  .option("--basin <name>", "Specify basin (defaults to 'all')", "all")
-  .option("--pool <name>", "Specify pool (required)")
+  .option("--basin <name>", "Specify basin", "all")
+  .option("--pool <name>", "Specify pool", "cons_pool")
   .option("--viewBoxWidth <number>", "Set the SVG viewBox width", 600)
   .option("--viewBoxHeight <number>", "Set the SVG viewBox height", 600)
-  .option("--outputFile <path>", "Output file name")
+  .option("--outputFile <path>", "Output file name", "./basin.svg")
   .option("--outputDir <path>", "Directory to save the output", ".")
-  .option("--fontSize <size>", "Font size for the labels", "1.1em")
+  .option(
+    "--fontSize <size>",
+    "Font size for the labels (Any CSS font size)",
+    "1em"
+  )
   .option("--strokeWidth <number>", "Set stroke width of pie chart", 1)
+  .option(
+    "--host <url>",
+    "Set the CDA host URL. Default to national.",
+    "https://cwms-data.usace.army.mil/cwms-data"
+  )
+  .option(
+    "--config <path>",
+    "Path to configuration file. Example in: test/swf.config.js"
+  )
+  .option(
+    "--office <office>",
+    "3 Letter Office Code. Overrides config value. (Default: null/config)"
+  )
   .parse(process.argv);
 
 if (!process.argv.slice(2).length) {
@@ -40,26 +57,60 @@ if (!process.argv.slice(2).length) {
 
 const options = program.opts();
 
-let basinProjects, level_ids, timeseries_ids, labels;
+var OFFICE,
+  basinProjects,
+  level_ids,
+  timeseries_ids,
+  BASIN_COLORS,
+  labels,
+  basinMap,
+  poolDisplay,
+  lookBackHours,
+  CDA_HOST,
+  CDA_RETRY_COUNT,
+  CDA_RETRY_DELAY_MS;
 if (options.config) {
   // Load user-specified config file
-  const userConfig = await loadConfig(options.config);
-  // Assign variables from user config (with defaults if necessary)
-  basinProjects, level_ids, timeseries_ids, (labels = userConfig);
-} else {
-  // Fall back to default config if no config file is provided
-  basinProjects,
+  var {
+    OFFICE,
+    basinProjects,
     level_ids,
     timeseries_ids,
-    (labels = await import("../config.js"));
+    BASIN_COLORS,
+    labels,
+    basinMap,
+    poolDisplay,
+    lookBackHours,
+    CDA_HOST,
+    CDA_RETRY_COUNT,
+    CDA_RETRY_DELAY_MS,
+  } = await loadConfig(options.config);
+} else {
+  // Fall back to default config if no config file is provided
+  var {
+    OFFICE,
+    basinProjects,
+    level_ids,
+    timeseries_ids,
+    BASIN_COLORS,
+    labels,
+    basinMap,
+    poolDisplay,
+    lookBackHours,
+    CDA_HOST,
+    CDA_RETRY_COUNT,
+    CDA_RETRY_DELAY_MS,
+  } = await import("../../test/swf.config.js");
 }
-console.log(basinProjects, level_ids, timeseries_ids, labels);
+
+if (options.office) OFFICE = options.office.toUpperCase();
+if (options?.host) CDA_HOST = options.host;
 
 let width = parseInt(options.width);
 let height = parseInt(options.height);
 let basin = options.basin;
 let pool = options.pool;
-let stroke_width = parseInt(options.strokeWidth);
+let strokeWidth = parseInt(options.strokeWidth);
 let viewBoxWidth = parseInt(options.viewBoxWidth);
 let viewBoxHeight = parseInt(options.viewBoxHeight);
 let cx = viewBoxWidth / 2;
@@ -118,39 +169,66 @@ const BEGIN_DATE = dayjs().subtract(3, "hour").format(CDA_DATE_FORMAT);
 async function run(_basin, _pool, _outputFile) {
   console.log(`Generating for ${_basin}.${_pool}`);
 
-  const levelData = await fetchLevelData(_basin, basinProjects, level_ids, {
-    begin: TODAY,
-    end: TODAY,
-  });
-  const tsData = await fetchTimeseriesData(
+  const { ts_api, level_api, cata_api, locations_api } =
+    initializeAPIs(CDA_HOST);
+
+  const levelData = await fetchLevelData(
+    _basin,
+    basinProjects,
+    level_ids,
+    {
+      office: OFFICE,
+      begin: TODAY,
+      end: TODAY,
+    },
+    level_api
+  );
+  const timeseriesData = await fetchTimeseriesData(
     _basin,
     basinProjects,
     timeseries_ids,
     {
+      office: OFFICE,
       begin: BEGIN_DATE,
-    }
+    },
+    ts_api
   );
-
-  Object.keys(tsData).forEach((key) => {
-    const value = tsData[key];
+  console.log(levelData, timeseriesData);
+  if (levelData?.status == 404) {
+    console.log("No level data found for basin: " + _basin);
+    console.warn("API returned status code 404");
+    exit(1);
+  }
+  if (timeseriesData?.status == 404) {
+    console.log("No timeseries data found for basin: " + _basin);
+    console.warn("API returned status code 404");
+    exit(1);
+  }
+  Object.keys(timeseriesData).forEach((key) => {
+    const value = timeseriesData[key];
     if (!value) console.log(key + "\n\thas no data for " + BEGIN_DATE);
   });
 
-  createBasinPie(svg, basinProjects, {
-    radius,
-    width,
-    height,
-    viewBoxWidth,
-    viewBoxHeight,
+  createBasinPie({
+    svg,
+    basinProjects,
     basin: _basin,
     pool,
     levelData,
-    tsData,
-    labels,
-    cx,
-    cy,
-    fontSize,
-    stroke_width,
+    timeseriesData,
+    options: {
+      radius,
+      width,
+      height,
+      viewBoxWidth,
+      viewBoxHeight,
+      labels,
+      cx,
+      cy,
+      fontSize,
+      strokeWidth,
+    },
+    config: { level_ids, timeseries_ids, BASIN_COLORS, poolDisplay },
   });
 
   await saveSvgAsWebP(svg, _outputFile);

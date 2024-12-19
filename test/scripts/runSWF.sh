@@ -1,0 +1,2 @@
+basinpie --width 400 --height 400 --basin all --pool cons_pool --outputFile test.svg --outputDir ../ --fontSize 1.1em --strokeWidth 1 --host https://cwms-data.usace.army.mil/cwms-data
+echo Test Complete!
